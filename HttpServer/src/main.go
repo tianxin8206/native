@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"k8s.io/klog/v2"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -15,21 +14,27 @@ func main() {
 	// 设置监听的端口
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		klog.Fatalln("ListenAndServe: ", err)
 	}
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
-	klog.Infoln("Method:", r.Method, "Url:", r.URL)
-
 	err := writeHeader(w, r)
 
 	// 判断是否是get请求
+	var code int
+	var msg string
 	if strings.ToLower(r.Method) != "get" {
-		writeBody(405, "Method not allowed", w, err)
+		code = 405
+		msg = "Method not allowed"
 	} else {
-		writeBody(200, "OK", w, nil)
+		code = 200
+		msg = "OK"
 	}
+
+	writeBody(code, msg, w, err)
+
+	klog.Infoln("Method:", r.Method, "Url:", r.URL, "StatusCode:", code)
 }
 
 // 写入消息体
