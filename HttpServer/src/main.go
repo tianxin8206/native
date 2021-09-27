@@ -19,11 +19,17 @@ func main() {
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
-	err := writeHeader(w, r)
+	if w == nil {
+		err := fmt.Errorf("http.ResponseWriter is nil")
+		klog.Errorln("responseWriter is nil,", err)
+		return
+	}
 
 	// 判断是否是get请求
-	var code int
-	var msg string
+	var (
+		code int
+		msg  string
+	)
 	if strings.ToLower(r.Method) != "get" {
 		code = 405
 		msg = "Method not allowed"
@@ -32,17 +38,14 @@ func health(w http.ResponseWriter, r *http.Request) {
 		msg = "OK"
 	}
 
-	writeBody(code, msg, w, err)
+	writeBody(code, msg, w, r)
 
 	klog.Infoln("Method:", r.Method, "Url:", r.URL, "StatusCode:", code)
 }
 
 // 写入消息体
-func writeBody(statusCode int, msg string, w http.ResponseWriter, headerErr error) {
-	if headerErr != nil {
-		statusCode = 500
-		msg = "Internal server error"
-	}
+func writeBody(statusCode int, msg string, w http.ResponseWriter, r *http.Request) {
+	writeHeader(w, r)
 
 	w.WriteHeader(statusCode)
 	buffer := []byte(msg)
@@ -53,13 +56,7 @@ func writeBody(statusCode int, msg string, w http.ResponseWriter, headerErr erro
 }
 
 // RequestHeader写入ResponseHeader
-func writeHeader(w http.ResponseWriter, r *http.Request) error {
-	if w == nil {
-		err := fmt.Errorf("http.ResponseWriter is nil")
-		klog.Errorln("responseWriter is nil,", err)
-		return err
-	}
-
+func writeHeader(w http.ResponseWriter, r *http.Request) {
 	for header := range r.Header {
 		// 跳过Content-Length Header
 		if header == "Content-Length" {
@@ -75,6 +72,4 @@ func writeHeader(w http.ResponseWriter, r *http.Request) error {
 	// 读取env
 	version := os.Getenv("Version")
 	w.Header().Set("Version", version)
-
-	return nil
 }
