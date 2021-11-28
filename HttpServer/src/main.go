@@ -1,27 +1,45 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"k8s.io/klog/v2"
+	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func main() {
 	// 设置路由
 	http.HandleFunc("/healthz", health)
 	// 设置监听的端口
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		klog.Fatalln("ListenAndServe: ", err)
+	server := &http.Server{Addr: ":8080", Handler: nil}
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatalln("ListenAndServe: ", err)
+		}
+	}()
+
+	//优雅停止
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	select {
+	case <-sigs:
+		log.Println("收到停止信号")
+		cancelErr := server.Shutdown(context.Background())
+		if cancelErr != nil {
+			log.Fatalln("Shutdown: ", cancelErr)
+		}
 	}
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
 	if w == nil {
 		err := fmt.Errorf("http.ResponseWriter is nil")
-		klog.Errorln("responseWriter is nil,", err)
+		log.Fatalln("responseWriter is nil,", err)
 		return
 	}
 
@@ -40,7 +58,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 
 	writeBody(code, msg, w, r)
 
-	klog.Infoln("Method:", r.Method, "Url:", r.URL, "StatusCode:", code)
+	log.Println("Method:", r.Method, "Url:", r.URL, "StatusCode:", code)
 }
 
 // 写入消息体
@@ -51,7 +69,7 @@ func writeBody(statusCode int, msg string, w http.ResponseWriter, r *http.Reques
 	buffer := []byte(msg)
 	write, writeErr := w.Write(buffer)
 	if writeErr != nil {
-		klog.Errorln("code:", write, "error:", writeErr)
+		log.Println("code:", write, "error:", writeErr)
 	}
 }
 
