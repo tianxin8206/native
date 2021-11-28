@@ -1,21 +1,30 @@
 package main
 
 import (
+	"HttpServer/src/config"
 	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 )
 
 func main() {
+	//读取json
+	configuration, err := config.LoadConfiguration()
+	if err != nil {
+		log.Fatalln("json读取错误")
+		return
+	}
+
 	// 设置路由
 	http.HandleFunc("/healthz", health)
 	// 设置监听的端口
-	server := &http.Server{Addr: ":8080", Handler: nil}
+	server := &http.Server{Addr: ":" + strconv.Itoa(configuration.Port), Handler: nil}
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {

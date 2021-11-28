@@ -11,5 +11,7 @@ RUN go build ./src/main.go
 
 FROM scratch
 EXPOSE 8080
+WORKDIR /app
 COPY --from=base /src/main .
-CMD [ "/main" ]
+COPY --from=base /src/src/config.json .
+CMD [ "./main" ]
