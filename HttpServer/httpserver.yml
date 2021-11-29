@@ -73,7 +73,19 @@ spec:
             requests:
               cpu: 100m
               memory: 20Mi
+          volumeMounts:
+            - mountPath: /app/config.json
+              name: volume-configmap
+              subPath: config.json
       restartPolicy: Always
+      schedulerName: default-scheduler
+      volumes:
+        - configMap:
+            items:
+              - key: config.json
+                path: config.json
+            name: httpserverconfig
+          name: volume-configmap
 
 ---
 apiVersion: v1
