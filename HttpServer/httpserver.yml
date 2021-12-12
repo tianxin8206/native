@@ -39,11 +39,14 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
       labels:
         mylabel: httpserver
     spec:
       containers:
-        - image: 'tianxin8206/httpserver:1.0'
+        - image: 'tianxin8206/httpserver:1.1'
           name: httpserver
           imagePullPolicy: Always
           lifecycle:

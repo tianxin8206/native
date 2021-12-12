@@ -2,15 +2,20 @@ package main
 
 import (
 	"HttpServer/src/config"
+	"HttpServer/src/metrics"
 	"context"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -21,8 +26,13 @@ func main() {
 		return
 	}
 
+	metrics.Register()
+
 	// 设置路由
 	http.HandleFunc("/healthz", health)
+	http.HandleFunc("/hello", rootHandler)
+	http.Handle("/metrics", promhttp.Handler())
+
 	// 设置监听的端口
 	server := &http.Server{Addr: ":" + strconv.Itoa(configuration.Port), Handler: nil}
 	go func() {
@@ -99,4 +109,28 @@ func writeHeader(w http.ResponseWriter, r *http.Request) {
 	// 读取env
 	version := os.Getenv("Version")
 	w.Header().Set("Version", version)
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("entering root handler")
+	timer := metrics.NewTimer()
+	defer timer.ObserveTotal()
+	user := r.URL.Query().Get("user")
+	delay := randInt(10, 2000)
+	time.Sleep(time.Millisecond * time.Duration(delay))
+	if user != "" {
+		_, _ = io.WriteString(w, fmt.Sprintf("hello [%s]\n", user))
+	} else {
+		_, _ = io.WriteString(w, "hello [stranger]\n")
+	}
+	_, _ = io.WriteString(w, "===================Details of the http request header:============\n")
+	for k, v := range r.Header {
+		_, _ = io.WriteString(w, fmt.Sprintf("%s=%s\n", k, v))
+	}
+	log.Println("Respond in %d ms", delay)
+}
+
+func randInt(min int, max int) int {
+	rand.Seed(time.Now().UTC().UnixNano())
+	return min + rand.Intn(max-min)
 }
