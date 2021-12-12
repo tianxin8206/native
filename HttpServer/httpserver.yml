@@ -46,7 +46,7 @@ spec:
         mylabel: httpserver
     spec:
       containers:
-        - image: 'tianxin8206/httpserver:1.1'
+        - image: 'tianxin8206/httpserver:1.2'
           name: httpserver
           imagePullPolicy: Always
           lifecycle:
